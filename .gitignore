@@ -1,0 +1,15 @@
+# secrets
+.env
+creds
+
+# raw data (2.3 GB – too big for git)
+data/
+
+# logs & python cache
+logs/
+__pycache__/
+*.pyc
+
+# dbt build output (also covered by zomato/.gitignore)
+target/
+dbt_packages/
