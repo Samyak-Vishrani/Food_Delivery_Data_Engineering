@@ -11,7 +11,7 @@ load_dotenv()
 EMBEDDING_MODEL = "text-embedding-3-small"
 CHAT_MODEL = "gpt-4o-mini"
 NEW_REVIEWS = 500
-TOK_K = 5
+TOP_K = 5
 CACHE_FILE = "review_embeddings.parquet"
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -68,7 +68,7 @@ def find_similar_reviews(question, df):
 
     df = df.copy()
     df['score'] = scores
-    return df.nlargest(TOK_K, 'score')
+    return df.nlargest(TOP_K, 'score')
 
 def ask_llm(question, top_reviews):
     conext = ""

@@ -2,10 +2,11 @@
 
 An end-to-end data engineering project on a food delivery dataset (orders, restaurants, users, menus and ~300k reviews).
 
-Raw CSV files are loaded into **Snowflake**, transformed with **dbt** through a **medallion architecture** (Bronze → Silver → Gold), orchestrated daily by **Apache Airflow** running in Docker, and topped with an **AI layer** (OpenAI) for review enrichment, natural-language-to-SQL and RAG chat over reviews.
+Raw CSV files stored in **AWS S3** are loaded into **Snowflake**, transformed with **dbt** through a **medallion architecture** (Bronze → Silver → Gold), orchestrated daily by **Apache Airflow** running in Docker, and topped with an **AI layer** (OpenAI) for review enrichment, natural-language-to-SQL and RAG chat over reviews.
 
 | Layer | Tool |
 |---|---|
+| Source storage | AWS S3 |
 | Warehouse | Snowflake |
 | Transformation & testing | dbt (dbt-snowflake) |
 | Orchestration | Apache Airflow 3 (Docker Compose, LocalExecutor) |
@@ -18,7 +19,11 @@ Raw CSV files are loaded into **Snowflake**, transformed with **dbt** through a 
 
 ```mermaid
 flowchart LR
-    CSV[CSV files] --> STAGE[(Snowflake stage<br/>ZOMATO_RAW_STAGE)]
+    subgraph AWS["AWS"]
+        S3[(S3 bucket<br/>raw CSV files)]
+    end
+
+    S3 --> STAGE[(External stage<br/>ZOMATO_RAW_STAGE)]
 
     subgraph SF["Snowflake - ZOMATO database"]
         STAGE -- COPY INTO --> RAW[Bronze<br/>RAW schema]
@@ -44,7 +49,7 @@ The medallion architecture organises data into layers of increasing quality. Eac
 
 **Raw data, exactly as it arrived.** No cleaning, no renaming.
 
-- Loaded from the Snowflake stage `@ZOMATO.RAW.ZOMATO_RAW_STAGE` with `COPY INTO`.
+- The CSV files live in an **AWS S3** bucket. The Snowflake external stage `@ZOMATO.RAW.ZOMATO_RAW_STAGE` points at that bucket, and `COPY INTO` loads the files from it.
 - Tables: `restaurants`, `users`, `food`, `menu`, `orders`, `order_items`, `reviews`.
 - Declared to dbt as the `raw` source in [`sources.yml`](zomato/models/staging/sources.yml).
 - Snowflake's load history means re-running `COPY INTO` only picks up **new** files, so loads are safe to repeat.
@@ -229,7 +234,8 @@ OPENAI_API_KEY=<your key>
 
 ### Prerequisites
 
-- A Snowflake account with database `ZOMATO`, warehouse `ZOMATO_WH`, role `DBT_ROLE`, the `RAW` tables, and the CSV files staged in `@ZOMATO.RAW.ZOMATO_RAW_STAGE`
+- A Snowflake account with database `ZOMATO`, warehouse `ZOMATO_WH`, role `DBT_ROLE`, the `RAW` tables, and the external stage `@ZOMATO.RAW.ZOMATO_RAW_STAGE` pointing at the S3 bucket
+- An AWS S3 bucket containing the raw CSV files, with one folder per table (`restaurants/`, `users/`, `food/`, `menu/`, `orders/`, `order_items/`, `reviews/`)
 - Docker Desktop
 - An OpenAI API key (only needed for the `ai/` scripts)
 
