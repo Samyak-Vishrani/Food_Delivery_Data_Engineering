@@ -10,7 +10,7 @@ load_dotenv()
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 CHAT_MODEL = "gpt-4o-mini"
-NEW_REVIEWS = 500
+REVIEWS_SAMPLE_SIZE = 500
 TOP_K = 5
 CACHE_FILE = "review_embeddings.parquet"
 
@@ -28,7 +28,7 @@ def read_reviews_from_snowflake():
     query = f"""
         SELECT REVIEW_ID, CITY, RATING, COMMENT
         FROM ZOMATO.STAGING.STG_REVIEWS
-        SAMPLE ({NEW_REVIEWS} ROWS)
+        SAMPLE ({REVIEWS_SAMPLE_SIZE} ROWS)
     """
     df = conn.cursor().execute(query).fetch_pandas_all()
     conn.close()
@@ -54,7 +54,7 @@ def load_reviews():
     return df
 
 st.title("Chat with your Zomato Reviews")
-st.caption(f"Searching {NEW_REVIEWS} review, answering with {CHAT_MODEL} model")
+st.caption(f"Searching {REVIEWS_SAMPLE_SIZE} reviews, answering with {CHAT_MODEL} model")
 
 def consine_simiarity(vec_a, vec_b):
     return np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b))
@@ -71,17 +71,17 @@ def find_similar_reviews(question, df):
     return df.nlargest(TOP_K, 'score')
 
 def ask_llm(question, top_reviews):
-    conext = ""
+    context = ""
 
     for _, row in top_reviews.iterrows():
-        conext += f" ({row['city']}, {row['rating']} stars) {row['comment']}\n"
+        context += f" ({row['city']}, {row['rating']} stars) {row['comment']}\n"
 
     system_prompt = (
         "Answer ONLY using the customer reviews provided. "
-        "Be concise. If the reviews don't covert it, say so"
+        "Be concise. If the reviews don't cover it, say so"
     )
 
-    user_prompt = f"Questions: {question}\n\nReviews:\n{conext}"
+    user_prompt = f"Question: {question}\n\nReviews:\n{context}"
 
     response = client.chat.completions.create(
         model=CHAT_MODEL,
