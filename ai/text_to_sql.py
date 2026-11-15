@@ -15,7 +15,7 @@ FORBIDDEN_WORDS = ['drop', 'delete', 'truncate', 'alter', 'update', 'insert', 'c
 
 EXAMPLE_QUESTIONS = [
     "Top 10 cities by GMV",
-    "Which cuisin has the most orders?",
+    "Which cuisine has the most orders?",
     "Average delivery time by city, worst first",
     "Cancel rate by payment method"
 ]
@@ -25,15 +25,12 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 SCHEMA = """
 Tables available (Snowflake). Use bare table names, no database or schema prefix.
  
-FCT_ORDERS(order_id, order_date, customer_id, restaurant_id, city, cuisine,
-           payment_method, order_status, is_delivered, sales_amount, discount,
-           delivery_fee, gst, customer_rating, delivery_time_min)
-DIM_RESTAURANT(restaurant_id, restaurant_name, city, cuisine, rating, cost_for_two)
-DIM_CUSTOMER(customer_id, customer_name, age, age_segment, gender, city)
-MART_DAILY_CITY_REVENUNE(order_date, city, orders, cancel_rate, gmv, aov)
-MART_RESTAURANT_PERFORMANCE(restaurant_id, restaurant_name, city, cuisine,
-                            orders, revenue, avg_customer_rating, cancel_rate)
-MART_DELIVERY_SLA(city, order_hour, delivered_orders, p50_delivery_min, late_rate)
+FCT_ORDERS(order_id, order_date, customer_id, restaurant_id, city, cuisine, payment_method, order_status, is_delivered, sales_amount, discount, delivery_fee, gst, customer_rating, delivery_time_min)
+DIM_RESTAURANTS(restaurant_id, restaurant_name, city, cuisine, rating, cost_for_two)
+DIM_CUSTOMER(customer_id, customer_name, age, age_segment, gender, income_band)
+MART_DAILY_CITY_REVENUE(order_date, city, orders, cancel_rate, gmv, aov)
+MART_RESTAURANT_PERFORMANCE(restaurant_id, restaurant_name, city, cuisine, orders, revenue, avg_customer_rating, avg_delivery_min)
+MART_DELIVERY_SLA(city, order_hour, delivered_orders, p50, p90, sla_breach_rate)
 
  
 Note: gmv means delivered revenue. Prefer the MART_ tables when they fit the question.
@@ -109,8 +106,7 @@ with st.sidebar:
     for q in EXAMPLE_QUESTIONS:
         st.markdown(f" - {q}")
 
-question = st.text_input("Enter your question here", 
-                         placeholder="e.g. Top 10 restaurants by revenune in Banglore")
+question = st.text_input("Enter your question here", placeholder="e.g. Top 10 restaurants by revenue in Bangalore")
 
 
 if question:
